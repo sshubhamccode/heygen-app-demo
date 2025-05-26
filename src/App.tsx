@@ -3,7 +3,7 @@ import { Layout } from './components/Layout';
 import { VideoProcessor } from './components/VideoProcessor';
 import HeygenAvatar from './components/HeygenAvatar';
 import { Auth } from './components/Auth';
-import { supabase } from './utils/supabaseClient';
+import axios from 'axios';
 
 function App() {
   const [activeTab, setActiveTab] = useState<'translator' | 'avatar'>('translator');
@@ -11,20 +11,24 @@ function App() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check active session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
+    // Check if user is logged in
+    const token = localStorage.getItem('auth_token');
+    if (token) {
+      axios.get('http://localhost:5000/auth/verify', {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      .then(response => {
+        setSession(response.data);
+        setLoading(false);
+      })
+      .catch(() => {
+        localStorage.removeItem('auth_token');
+        setSession(null);
+        setLoading(false);
+      });
+    } else {
       setLoading(false);
-    });
-
-    // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-    });
-
-    return () => subscription.unsubscribe();
+    }
   }, []);
 
   if (loading) {
@@ -36,7 +40,7 @@ function App() {
   }
 
   if (!session) {
-    return <Auth onAuthSuccess={() => {}} />;
+    return <Auth onAuthSuccess={(session) => setSession(session)} />;
   }
 
   return (
@@ -44,7 +48,10 @@ function App() {
       activeTab={activeTab} 
       onTabChange={setActiveTab}
       session={session}
-      onSignOut={() => supabase.auth.signOut()}
+      onSignOut={() => {
+        localStorage.removeItem('auth_token');
+        setSession(null);
+      }}
     >
       {activeTab === 'translator' ? <VideoProcessor /> : <HeygenAvatar />}
     </Layout>
