@@ -3,13 +3,10 @@ import { VideoUploader } from './VideoUploader';
 import { VideoPreview } from './VideoPreview';
 import { ProcessingOptions } from './ProcessingOptions';
 import { ProofreadingDialog } from './ProofreadingDialog';
-import { VideoFile, Language, ProcessVideoParams } from '../types';
+import { VideoFile, Language } from '../types';
+import { db } from '../utils/dbClient';
 import {
-  uploadVideo,
   uploadVideo1,
-  processVideo,
-  getJobStatus,
-  uploadVideoAndGetUrl,
   video_translate,
   getVideoTranslationStatus,
 } from '../utils/api';
@@ -152,6 +149,14 @@ export const VideoProcessor: React.FC = () => {
       if (status === 'success') {
         const videoTranslatedUri = videoTranslationResponse.data.url.split('?')[0];
 
+        await db.createVideo({
+          name: video.name,
+          original_url: videoUrl,
+          processed_url: videoTranslatedUri,
+          target_language: selectedLanguage.name,
+          status: 'completed'
+        });
+
         setVideo((prev) =>
           prev
             ? {
@@ -259,6 +264,14 @@ export const VideoProcessor: React.FC = () => {
 
       if (status === 'success') {
         const videoTranslatedUri = videoTranslationResponse.data.url.split('?')[0];
+
+        await db.createVideo({
+          name: video.name,
+          original_url: videoUrl,
+          processed_url: videoTranslatedUri,
+          target_language: selectedLanguage.name,
+          status: 'completed'
+        });
 
         setVideo((prev) =>
           prev

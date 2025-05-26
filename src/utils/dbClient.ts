@@ -1,46 +1,45 @@
-// Database utility functions for interacting with SQLite backend
+import axios from 'axios';
 
-const API_BASE_URL = '/api';
+const API_BASE_URL = 'http://localhost:5000';
 
-export async function query(endpoint: string, options: RequestInit = {}) {
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`);
+// Add auth token to all requests
+axios.interceptors.request.use((config) => {
+  const token = localStorage.getItem('auth_token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
   }
+  return config;
+});
 
-  return response.json();
-}
-
-// Example utility functions - implement these based on your specific needs
 export const db = {
-  async select(table: string) {
-    return query(`/${table}`);
+  async getVideos() {
+    const response = await axios.get(`${API_BASE_URL}/videos`);
+    return response.data.videos;
   },
-  
-  async insert(table: string, data: any) {
-    return query(`/${table}`, {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
+
+  async createVideo(data: {
+    name: string;
+    original_url: string;
+    processed_url: string;
+    target_language: string;
+    status: string;
+  }) {
+    const response = await axios.post(`${API_BASE_URL}/videos`, data);
+    return response.data;
   },
-  
-  async update(table: string, id: string | number, data: any) {
-    return query(`/${table}/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    });
+
+  async getAvatarGenerations() {
+    const response = await axios.get(`${API_BASE_URL}/avatar-generations`);
+    return response.data.generations;
   },
-  
-  async delete(table: string, id: string | number) {
-    return query(`/${table}/${id}`, {
-      method: 'DELETE',
-    });
-  },
+
+  async createAvatarGeneration(data: {
+    avatar_id: string;
+    voice_id: string;
+    text: string;
+    video_url?: string;
+  }) {
+    const response = await axios.post(`${API_BASE_URL}/avatar-generations`, data);
+    return response.data;
+  }
 };

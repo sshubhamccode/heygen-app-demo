@@ -6,6 +6,7 @@ import PreviewPanel from './PreviewPanel';
 import ControlPanel from './ControlPanel';
 import { fetchAvatars, fetchVoices } from '../utils/heygen-api';
 import { Avatar, Voice } from '../types';
+import { db } from '../utils/dbClient';
 import axios from 'axios';
 
 const API_KEY = 'NTBlNzQ0NjdkMTlhNGY1ZDg3ZGU1ZGM5YmViZmQwNmMtMTc0NzIxMDg3OQ==';
@@ -147,6 +148,14 @@ const HeygenAvatar: React.FC = () => {
         try {
           const finalVideoUrl = await checkVideoStatus(videoId);
           setVideoUrl(finalVideoUrl);
+
+          await db.createAvatarGeneration({
+            avatar_id: selectedAvatarId,
+            voice_id: selectedVoiceId,
+            text: speechText,
+            video_url: finalVideoUrl
+          });
+
           break;
         } catch (error) {
           if (error instanceof Error && error.message === 'pending') {
