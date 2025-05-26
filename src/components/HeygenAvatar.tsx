@@ -6,7 +6,6 @@ import PreviewPanel from './PreviewPanel';
 import ControlPanel from './ControlPanel';
 import { fetchAvatars, fetchVoices } from '../utils/heygen-api';
 import { Avatar, Voice } from '../types';
-import { supabase } from '../utils/supabaseClient';
 import axios from 'axios';
 
 const API_KEY = 'NTBlNzQ0NjdkMTlhNGY1ZDg3ZGU1ZGM5YmViZmQwNmMtMTc0NzIxMDg3OQ==';
@@ -79,28 +78,6 @@ const HeygenAvatar: React.FC = () => {
     setError(null);
   };
 
-  const saveToSupabase = async (videoUrl: string) => {
-    try {
-      const { data: userData, error: userError } = await supabase.auth.getUser();
-      if (userError) throw userError;
-
-      const { error } = await supabase.from('avatar_generations').insert([
-        {
-          user_id: userData.user.id,
-          avatar_id: selectedAvatarId,
-          voice_id: selectedVoiceId,
-          text: speechText,
-          video_url: videoUrl,
-        },
-      ]);
-
-      if (error) throw error;
-    } catch (error) {
-      console.error('Error saving to Supabase:', error);
-      throw error;
-    }
-  };
-
   const checkVideoStatus = async (videoId: string): Promise<string> => {
     const response = await axios.get(`https://api.heygen.com/v1/video_status.get?video_id=${videoId}`, {
       headers: {
@@ -170,7 +147,6 @@ const HeygenAvatar: React.FC = () => {
         try {
           const finalVideoUrl = await checkVideoStatus(videoId);
           setVideoUrl(finalVideoUrl);
-          await saveToSupabase(finalVideoUrl);
           break;
         } catch (error) {
           if (error instanceof Error && error.message === 'pending') {

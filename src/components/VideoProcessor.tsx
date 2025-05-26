@@ -4,7 +4,6 @@ import { VideoPreview } from './VideoPreview';
 import { ProcessingOptions } from './ProcessingOptions';
 import { ProofreadingDialog } from './ProofreadingDialog';
 import { VideoFile, Language, ProcessVideoParams } from '../types';
-import { supabase } from '../utils/supabaseClient';
 import {
   uploadVideo,
   uploadVideo1,
@@ -91,68 +90,6 @@ export const VideoProcessor: React.FC = () => {
     }
   };
 
-  const ensureUserProfile = async (userId: string, userEmail: string) => {
-    try {
-      // First check if profile exists
-      const { data: existingProfile } = await supabase
-        .from('profiles')
-        .select()
-        .eq('id', userId)
-        .maybeSingle();
-
-      // Only create profile if it doesn't exist
-      if (!existingProfile) {
-        const { error: insertError } = await supabase
-          .from('profiles')
-          .insert([
-            {
-              id: userId,
-              email: userEmail,
-            },
-          ]);
-
-        if (insertError) throw insertError;
-      }
-
-      return true;
-    } catch (error) {
-      console.error('Error ensuring user profile:', error);
-      throw error;
-    }
-  };
-
-  const saveToSupabase = async (videoData: {
-    name: string;
-    original_url: string;
-    processed_url: string;
-    target_language: string;
-    status: string;
-  }) => {
-    try {
-      const { data: userData, error: userError } = await supabase.auth.getUser();
-      if (userError) throw userError;
-
-      // Ensure user profile exists before saving video
-      await ensureUserProfile(userData.user.id, userData.user.email || '');
-
-      const { error } = await supabase.from('videos').insert([
-        {
-          user_id: userData.user.id,
-          name: videoData.name,
-          original_url: videoData.original_url,
-          processed_url: videoData.processed_url,
-          target_language: videoData.target_language,
-          status: videoData.status,
-        },
-      ]);
-
-      if (error) throw error;
-    } catch (error) {
-      console.error('Error saving to Supabase:', error);
-      throw error;
-    }
-  };
-
   const handleSaveTranslation = async (editedText: string) => {
     if (!video) return;
 
@@ -214,14 +151,6 @@ export const VideoProcessor: React.FC = () => {
 
       if (status === 'success') {
         const videoTranslatedUri = videoTranslationResponse.data.url.split('?')[0];
-        
-        await saveToSupabase({
-          name: video.name,
-          original_url: videoUrl,
-          processed_url: videoTranslatedUri,
-          target_language: selectedLanguage.name,
-          status: 'completed',
-        });
 
         setVideo((prev) =>
           prev
@@ -330,14 +259,6 @@ export const VideoProcessor: React.FC = () => {
 
       if (status === 'success') {
         const videoTranslatedUri = videoTranslationResponse.data.url.split('?')[0];
-        
-        await saveToSupabase({
-          name: video.name,
-          original_url: videoUrl,
-          processed_url: videoTranslatedUri,
-          target_language: selectedLanguage.name,
-          status: 'completed',
-        });
 
         setVideo((prev) =>
           prev
